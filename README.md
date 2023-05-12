@@ -1,7 +1,13 @@
 # ECHAT
 Chatting over a network made easy! Written in python
 # How do I use it
-Relays are coming soon, but it is currently a local thing. 
+
+You will need ECHAT V1.1 or higher for access
+Relay 1:
+
+
+
+node3.endelon-hosting.de:10797
 
 You can host it on a server, but you need to know it's ip. It is recommended to have a domain name assioated with the server.
 

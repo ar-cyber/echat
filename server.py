@@ -1,60 +1,108 @@
+# import socket library
 import socket
-from threading import Thread
 
-# server's IP address
-SERVER_HOST = "0.0.0.0"
-SERVER_PORT = 5002 # port we want to use
-separator_token = "<SEP>" # we will use this to separate the client name & message
+# import threading library
+import threading
 
-# initialize list/set of all connected client's sockets
-client_sockets = set()
-# create a TCP socket
-s = socket.socket()
-# make the port as reusable port
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-# bind the socket to the address we specified
-s.bind((SERVER_HOST, SERVER_PORT))
-# listen for upcoming connections
-s.listen(5)
-print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
-def listen_for_client(cs):
-    """
-    This function keep listening for a message from `cs` socket
-    Whenever a message is received, broadcast it to all other connected clients
-    """
-    while True:
-        try:
-            # keep listening for a message from `cs` socket
-            msg = cs.recv(1024).decode()
-        except Exception as e:
-            # client no longer connected
-            # remove it from the set
-            print(f"[!] Error: {e}")
-            client_sockets.remove(cs)
-        else:
-            # if we received a message, replace the <SEP> 
-            # token with ": " for nice printing
-            msg = msg.replace(separator_token, ": ")
-            print(msg)
-        # iterate over all connected sockets
-        for client_socket in client_sockets:
-            # and send the message
-            client_socket.send(msg.encode())
+# Choose a port that is free
+PORT = 10000
 
-while True:
-    # we keep listening for new connections all the time
-    client_socket, client_address = s.accept()
-    print(f"[+] {client_address} connected.")
-    # add the new connected client to connected sockets
-    client_sockets.add(client_socket)
-    # start a new thread that listens for each client's messages
-    t = Thread(target=listen_for_client, args=(client_socket,))
-    # make the thread daemon so it ends whenever the main thread ends
-    t.daemon = True
-    # start the thread
-    t.start()
-# close client sockets
-for cs in client_sockets:
-    cs.close()
-# close server socket
-s.close()
+# An IPv4 address is obtained
+# for the server.
+SERVER = socket.gethostbyname(socket.gethostname())
+
+# Address is stored as a tuple
+ADDRESS = (SERVER, PORT)
+
+# the format in which encoding
+# and decoding will occur
+FORMAT = "utf-8"
+
+# Lists that will contains
+# all the clients connected to
+# the server and their names.
+clients, names = [], []
+
+# Create a new socket for
+# the server
+server = socket.socket(socket.AF_INET,
+					socket.SOCK_STREAM)
+
+# bind the address of the
+# server to the socket
+server.bind(ADDRESS)
+
+# function to start the connection
+
+
+def startChat():
+
+	print("server is working on " + SERVER)
+
+	# listening for connections
+	server.listen()
+
+	while True:
+
+		# accept connections and returns
+		# a new connection to the client
+		# and the address bound to it
+		conn, addr = server.accept()
+		conn.send("NAME".encode(FORMAT))
+
+		# 1024 represents the max amount
+		# of data that can be received (bytes)
+		name = conn.recv(1024).decode(FORMAT)
+
+		# append the name and client
+		# to the respective list
+		names.append(name)
+		clients.append(conn)
+
+		print(f"Name is :{name}")
+
+		# broadcast message
+		broadcastMessage(f"{name} has joined the chat!".encode(FORMAT))
+
+		conn.send('Connection successful!'.encode(FORMAT))
+
+		# Start the handling thread
+		thread = threading.Thread(target=handle,
+								args=(conn, addr))
+		thread.start()
+
+		# no. of clients connected
+		# to the server
+		print(f"active connections {threading.activeCount()-1}")
+
+# method to handle the
+# incoming messages
+
+
+def handle(conn, addr):
+
+	print(f"new connection {addr}")
+	connected = True
+
+	while connected:
+		# receive message
+		message = conn.recv(1024)
+
+		# broadcast message
+		broadcastMessage(message)
+
+	# close the connection
+	conn.close()
+
+# method for broadcasting
+# messages to the each clients
+
+
+def broadcastMessage(message):
+	for client in clients:
+		client.send(message)
+
+
+# call the method to
+# begin the communication
+startChat()
